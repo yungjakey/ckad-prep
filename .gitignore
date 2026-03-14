@@ -1,0 +1,5 @@
+# note that killer.sh questions are protected by NDA
+*
+!.gitignore
+!README.md
+!simulations/.gitkeep 
