@@ -16,18 +16,18 @@ alias kx="kc use-context"                                            # poor mans
 alias kn="kc set-context --current --namespace"                      # poor mans kubens
 
 del() { k delete "$@" --grace-period 0 --force; }                    # delete a resource without waiting
-run() { kr tmp --image nginx:alpine --rm -it -- "$@"; del pod tmp; } # run a cmd in an existing pod
+run() { kr tmp --image nginx:alpine --rm -it -- "$@"; }              # run a cmd in an existing pod
 s() { ssh ckad$1; }                                                  # ssh into ckad scenario
 p() { scp .bash_aliases ckad$1:~/; }                                 # scp custom aliases into remote
 
+export do="-o yaml --dry-run=client"                                 # yaml template generation
 export VIMINIT="set ai"                                              # set autoindent to work on remote
 ```
 
-## Shell shortcuts
 ### History
 
 | expression | meaning | example |
-|---|---|---|
+| --- | --- | --- |
 | `!!` | last command | `sudo !!` |
 | `!$` | last arg of prev cmd | `vim !$` |
 | `!*` | all args of prev cmd | `cp !* ~/backup/` |
@@ -39,17 +39,24 @@ export VIMINIT="set ai"                                              # set autoi
 | `!?str?` | last cmd containing "str" | `!?kubectl?` |
 | `^old^new` | quick substitution in last cmd | `^typo^fixed` |
 | `!!:gs/a/b` | global substitution on last cmd | `!!:gs/dev/prd` |
+| `!$:h` | head (dir component of last arg) | `cd !$:h` |
+| `!$:t` | tail (filename component of last arg) | `echo !$:t` |
+| `!$:r` | root (strip extension of last arg) | `mv !$ !$:r.bak` |
+| `!$:e` | extension of last arg | `echo !$:e` |
+| `!!:p` | print expanded cmd without executing | `!!:p` |
 
 ### Arguments
 
 | expression | meaning | example |
-|---|---|---|
+| --- | --- | --- |
 | `"${@:2}"` | all args from $2 onward | `f() { cmd "${@:2}"; }` |
 | `"${@:2:3}"` | 3 args starting at $2 | `f() { cmd "${@:2:3}"; }` |
 | `"${@:(-2)}"` | last 2 args | `f() { cmd "${@:(-2)}"; }` |
 | `"${@:1:$#-1}"` | all args except last | `f() { cmd "${@:1:$#-1}"; }` |
 | `$#` | arg count | `[ $# -lt 2 ] && exit 1` |
 | `$0` | script / function name | `echo "Usage: $0 <file>"` |
+| `"$@"` | all args preserved as separate words | `cmd "$@"` |
+| `"$*"` | all args combined as single word (`$1 $2...`) | `echo "$*"` |
 
 ## Context & Namespace
 ```bash
@@ -105,7 +112,6 @@ k edit deploy nginx                           # live edit, saves immediately
 # 2. both deployments share same service selector label
 # 3. gradually scale v2 up, v1 down
 ```
-
 
 ## CronJobs
 
@@ -241,6 +247,7 @@ kg all -n my-ns                    # get everything in namespace
 k api-resources                    # list all resource types with shortnames
 k api-resources --namespaced=true  # only namespaced resources
 ```
+
 ## Docker / Podman
 ```bash
 # run sudo first
