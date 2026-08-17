@@ -1,0 +1,111 @@
+- id: state_persistence-00
+  domain: state_persistence
+  domain_name: State Persistence
+  weight: 8
+  title: Create busybox pod with two containers, each one will have the image busybox
+    and will run the 'sleep 3600' command. Make both containers mount an emptyDir
+    at '/etc/foo'. Connect to the second busybox, write the first column of '/etc/passwd'
+    file to '/etc/foo/passwd'. Connect to the first busybox and write '/etc/foo/passwd'
+    file to standard output. Delete pod.
+  task: Create busybox pod with two containers, each one will have the image busybox
+    and will run the 'sleep 3600' command. Make both containers mount an emptyDir
+    at '/etc/foo'. Connect to the second busybox, write the first column of '/etc/passwd'
+    file to '/etc/foo/passwd'. Connect to the first busybox and write '/etc/foo/passwd'
+    file to standard output. Delete pod.
+  hints: []
+  solution:
+  - kubectl run busybox --image=busybox --restart=Never -o yaml --dry-run=client --
+    /bin/sh -c 'sleep 3600' > pod.yaml
+  - kubectl exec -it busybox -c busybox2 -- /bin/sh
+  - 'cat /etc/passwd | cut -f 1 -d '':'' > /etc/foo/passwd # instead of cut command
+    you can use awk -F ":" ''{print $1}'''
+  - 'cat /etc/foo/passwd # confirm that stuff has been written successfully'
+  - exit
+  - kubectl exec -it busybox -c busybox -- /bin/sh
+  - 'mount | grep foo # confirm the mounting'
+  - cat /etc/foo/passwd
+  - exit
+  - kubectl delete po busybox
+  verify:
+  - kubectl get po busybox -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete po busybox --ignore-not-found
+  - kubectl delete po busybox
+- id: state_persistence-01
+  domain: state_persistence
+  domain_name: State Persistence
+  weight: 8
+  title: 'Create a PersistentVolume of 10Gi, called ''myvolume''. Make it have accessMode
+    of ''ReadWriteOnce'' and ''ReadWriteMany'', storageClassName ''normal'', mounted
+    on hostPath ''/etc/foo''. Save it on pv.yaml, add it to the cluster. Show the
+    PersistentVolumes that exist on the cluster -> Create a PersistentVolumeClaim
+    for this PersistentVolume, called ''mypvc'', a request of 4Gi and an accessMode
+    of ReadWriteOnce, with the storageClassName of normal, and save it on pvc.yaml.
+    Create it on the cluster. Show the PersistentVolumeClaims of the cluster. Show
+    the PersistentVolumes of the cluster -> Create a busybox pod with command ''sleep
+    3600'', save it on pod.yaml. Mount the PersistentVolumeClaim to ''/etc/foo''.
+    Connect to the ''busybox'' pod, and copy the ''/etc/passwd'' file to ''/etc/foo/passwd''
+    -> Create a second pod which is identical with the one you just created (you can
+    easily do it by changing the ''name'' property on pod.yaml). Connect to it and
+    verify that ''/etc/foo'' contains the ''passwd'' file. Delete pods to cleanup.
+    Note: If you can''t see the file from the second pod, can you figure out why?
+    What would you do to fix that?'
+  task: Create a PersistentVolume of 10Gi, called 'myvolume'. Make it have accessMode
+    of 'ReadWriteOnce' and 'ReadWriteMany', storageClassName 'normal', mounted on
+    hostPath '/etc/foo'. Save it on pv.yaml, add it to the cluster. Show the PersistentVolumes
+    that exist on the cluster
+  hints: []
+  solution:
+  - kubectl create -f pv.yaml
+  - kubectl get pv
+  - '# Then: Create a PersistentVolumeClaim for this PersistentVolume, called ''mypvc'',
+    a request of 4Gi and an accessMode of ReadWriteOnce, with the storageClassName
+    of normal, and save it on pvc.yaml. Create it on the cluster. Show the PersistentVolumeClaims
+    of the cluster. Show the PersistentVolumes of the cluster'
+  - kubectl create -f pvc.yaml
+  - 'kubectl get pvc # will show as ''Bound'''
+  - 'kubectl get pv # will show as ''Bound'' as well'
+  - '# Then: Create a busybox pod with command ''sleep 3600'', save it on pod.yaml.
+    Mount the PersistentVolumeClaim to ''/etc/foo''. Connect to the ''busybox'' pod,
+    and copy the ''/etc/passwd'' file to ''/etc/foo/passwd'''
+  - kubectl run busybox --image=busybox --restart=Never -o yaml --dry-run=client --
+    /bin/sh -c 'sleep 3600' > pod.yaml
+  - kubectl create -f pod.yaml
+  - kubectl exec busybox -it -- cp /etc/passwd /etc/foo/passwd
+  - '# Then: Create a second pod which is identical with the one you just created
+    (you can easily do it by changing the ''name'' property on pod.yaml). Connect
+    to it and verify that ''/etc/foo'' contains the ''passwd'' file. Delete pods to
+    cleanup. Note: If you can''t see the file from the second pod, can you figure
+    out why? What would you do to fix that?'
+  - kubectl create -f pod.yaml
+  - 'kubectl exec busybox2 -- ls /etc/foo # will show ''passwd'''
+  - kubectl delete po busybox busybox2
+  - kubectl delete pvc mypvc
+  - kubectl delete pv myvolume
+  - kubectl get po busybox -o wide
+  - kubectl get po busybox2 -o wide
+  verify:
+  - kubectl get pv
+  - 'kubectl get pvc # will show as ''Bound'''
+  - 'kubectl get pv # will show as ''Bound'' as well'
+  - kubectl get po busybox -o jsonpath='{.status.phase}'
+  - kubectl get po busybox -o wide
+  - kubectl get po busybox2 -o wide
+  cleanup:
+  - echo 'No cleanup needed'
+- id: state_persistence-05
+  domain: state_persistence
+  domain_name: State Persistence
+  weight: 8
+  title: Create a busybox pod with 'sleep 3600' as arguments. Copy '/etc/passwd' from
+    the pod to your local folder
+  task: Create a busybox pod with 'sleep 3600' as arguments. Copy '/etc/passwd' from
+    the pod to your local folder
+  hints: []
+  solution:
+  - kubectl run busybox --image=busybox --restart=Never -- sleep 3600
+  - 'kubectl cp busybox:/etc/passwd ./passwd # kubectl cp command'
+  verify:
+  - kubectl get po busybox -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete po busybox --ignore-not-found

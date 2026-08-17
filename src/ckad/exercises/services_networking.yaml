@@ -1,0 +1,198 @@
+- id: services_networking-00
+  domain: services_networking
+  domain_name: Services & Networking
+  weight: 13
+  title: Create a pod with image nginx called nginx and expose its port 80 -> Confirm
+    that ClusterIP has been created. Also check endpoints
+  task: Create a pod with image nginx called nginx and expose its port 80
+  hints: []
+  solution:
+  - kubectl run nginx --image=nginx --restart=Never --port=80 --expose
+  - '# Then: Confirm that ClusterIP has been created. Also check endpoints'
+  - 'kubectl get svc nginx # services'
+  - 'kubectl get ep # endpoints'
+  verify:
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  - 'kubectl get svc nginx # services'
+  - 'kubectl get ep # endpoints'
+  cleanup:
+  - kubectl delete po nginx --ignore-not-found
+- id: services_networking-02
+  domain: services_networking
+  domain_name: Services & Networking
+  weight: 13
+  title: Get service's ClusterIP, create a temp busybox pod and 'hit' that IP with
+    wget
+  task: Get service's ClusterIP, create a temp busybox pod and 'hit' that IP with
+    wget
+  hints: []
+  solution:
+  - 'kubectl get svc nginx # get the IP (something like 10.108.93.130)'
+  - kubectl run busybox --rm --image=busybox -it --restart=Never --
+  - wget -O- [PUT THE POD'S IP ADDRESS HERE]:80
+  - exit
+  - 'IP=$(kubectl get svc nginx --template={{.spec.clusterIP}}) # get the IP (something
+    like 10.108.93.130)'
+  - kubectl run busybox --rm --image=busybox -it --restart=Never --env="IP=$IP" --
+    wget -O- $IP:80 --timeout 2
+  verify:
+  - 'kubectl get svc nginx # get the IP (something like 10.108.93.130)'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: services_networking-03
+  domain: services_networking
+  domain_name: Services & Networking
+  weight: 13
+  title: Convert the ClusterIP to NodePort for the same service and find the NodePort
+    port. Hit service using Node's IP. Delete the service and the pod at the end.
+  task: Convert the ClusterIP to NodePort for the same service and find the NodePort
+    port. Hit service using Node's IP. Delete the service and the pod at the end.
+  hints: []
+  solution:
+  - kubectl edit svc nginx
+  - kubectl patch svc nginx -p '{"spec":{"type":"NodePort"}}'
+  - kubectl get svc
+  - 'wget -O- NODE_IP:31931 # if you''re using Kubernetes with Docker for Windows/Mac,
+    try 127.0.0.1'
+  - 'kubectl delete svc nginx # Deletes the service'
+  - 'kubectl delete pod nginx # Deletes the pod'
+  verify:
+  - kubectl get svc
+  cleanup:
+  - 'kubectl delete svc nginx # Deletes the service'
+  - 'kubectl delete pod nginx # Deletes the pod'
+- id: services_networking-04
+  domain: services_networking
+  domain_name: Services & Networking
+  weight: 13
+  title: Create a deployment called foo using image 'dgkanatsios/simpleapp' (a simple
+    server that returns hostname) and 3 replicas. Label it as 'app=foo'. Declare that
+    containers in this pod will accept traffic on port 8080 (do NOT create a service
+    yet) -> Get the pod IPs. Create a temp busybox pod and try hitting them on port
+    8080 -> Create a service that exposes the deployment on port 6262. Verify its
+    existence, check the endpoints
+  task: Create a deployment called foo using image 'dgkanatsios/simpleapp' (a simple
+    server that returns hostname) and 3 replicas. Label it as 'app=foo'. Declare that
+    containers in this pod will accept traffic on port 8080 (do NOT create a service
+    yet)
+  hints: []
+  solution:
+  - kubectl create deploy foo --image=dgkanatsios/simpleapp --port=8080 --replicas=3
+  - 'kubectl label deployment foo --overwrite app=foo #This is optional since kubectl
+    create deploy foo will create label app=foo by default'
+  - '# Then: Get the pod IPs. Create a temp busybox pod and try hitting them on port
+    8080'
+  - 'kubectl get pods -l app=foo -o wide # ''wide'' will show pod IPs'
+  - kubectl run busybox --image=busybox --restart=Never -it --rm -- sh
+  - 'wget -O- <POD_IP>:8080 # do not try with pod name, will not work'
+  - exit
+  - kubectl get po -o wide -l app=foo | awk '{print $6}' | grep -v IP | xargs -L1
+    -I '{}' kubectl run --rm -ti tmp --restart=Never --image=busybox -- wget -O- http://\{\}:8080
+  - kubectl get po -l app=foo -o jsonpath='{range .items[*]}{.status.podIP}{"\n"}{end}'
+    | xargs -L1 -I '{}' kubectl run --rm -ti tmp --restart=Never --image=busybox --
+    wget -O- http://\{\}:8080
+  - '# Then: Create a service that exposes the deployment on port 6262. Verify its
+    existence, check the endpoints'
+  - kubectl expose deploy foo --port=6262 --target-port=8080
+  - 'kubectl get service foo # you will see ClusterIP as well as port 6262'
+  - 'kubectl get endpoints foo # you will see the IPs of the three replica pods, listening
+    on port 8080'
+  verify:
+  - kubectl get deploy foo -o jsonpath='{.status.readyReplicas}'
+  - 'kubectl get pods -l app=foo -o wide # ''wide'' will show pod IPs'
+  - kubectl get po -o wide -l app=foo | awk '{print $6}' | grep -v IP | xargs -L1
+    -I '{}' kubectl run --rm -ti tmp --restart=Never --image=busybox -- wget -O- http://\{\}:8080
+  - kubectl get po -l app=foo -o jsonpath='{range .items[*]}{.status.podIP}{"\n"}{end}'
+    | xargs -L1 -I '{}' kubectl run --rm -ti tmp --restart=Never --image=busybox --
+    wget -O- http://\{\}:8080
+  - 'kubectl get service foo # you will see ClusterIP as well as port 6262'
+  - 'kubectl get endpoints foo # you will see the IPs of the three replica pods, listening
+    on port 8080'
+  cleanup:
+  - kubectl delete deploy foo --ignore-not-found
+- id: services_networking-07
+  domain: services_networking
+  domain_name: Services & Networking
+  weight: 13
+  title: Create a temp busybox pod and connect via wget to foo service. Verify that
+    each time there's a different hostname returned. Delete deployment and services
+    to cleanup the cluster
+  task: Create a temp busybox pod and connect via wget to foo service. Verify that
+    each time there's a different hostname returned. Delete deployment and services
+    to cleanup the cluster
+  hints: []
+  solution:
+  - 'kubectl get svc # get the foo service ClusterIP'
+  - kubectl run busybox --image=busybox -it --rm --restart=Never -- sh
+  - 'wget -O- foo:6262 # DNS works! run it many times, you''ll see different pods
+    responding'
+  - 'wget -O- <SERVICE_CLUSTER_IP>:6262 # ClusterIP works as well'
+  - you can also kubectl logs on deployment pods to see the container logs
+  - kubectl delete svc foo
+  - kubectl delete deploy foo
+  verify:
+  - 'kubectl get svc # get the foo service ClusterIP'
+  cleanup:
+  - kubectl delete svc foo
+  - kubectl delete deploy foo
+- id: services_networking-08
+  domain: services_networking
+  domain_name: Services & Networking
+  weight: 13
+  title: 'Create an nginx deployment of 2 replicas, expose it via a ClusterIP service
+    on port 80. Create a NetworkPolicy so that only pods with labels ''access: granted''
+    can access the pods in this deployment and apply it'
+  task: 'Create an nginx deployment of 2 replicas, expose it via a ClusterIP service
+    on port 80. Create a NetworkPolicy so that only pods with labels ''access: granted''
+    can access the pods in this deployment and apply it'
+  hints:
+  - 'Network Policies: https://kubernetes.io/docs/concepts/services-networking/network-policies/'
+  solution:
+  - kubectl create deployment nginx --image=nginx --replicas=2
+  - kubectl expose deployment nginx --port=80
+  - 'kubectl describe svc nginx # see the ''app=nginx'' selector for the pods'
+  - kubectl get svc nginx -o yaml
+  - kubectl create -f policy.yaml
+  - kubectl run busybox --image=busybox --rm -it --restart=Never -- wget -O- http://nginx:80
+    --timeout 2
+  - kubectl run busybox --image=busybox --rm -it --restart=Never --labels=access=granted
+    -- wget -O- http://nginx:80 --timeout 2
+  verify:
+  - kubectl get deploy nginx -o jsonpath='{.status.readyReplicas}'
+  - 'kubectl describe svc nginx # see the ''app=nginx'' selector for the pods'
+  - kubectl get svc nginx -o yaml
+  cleanup:
+  - kubectl delete deploy nginx --ignore-not-found
+- id: services_networking-09
+  domain: services_networking
+  domain_name: Services & Networking
+  weight: 13
+  title: Create an Ingress resource to expose an existing service using HTTP path
+    routing
+  task: Create an Ingress resource to expose an existing service using HTTP path routing
+  hints: []
+  solution:
+  - kubectl get svc nginx
+  - kubectl create deployment nginx --image=nginx --port=80
+  - kubectl expose deployment nginx --port=80 --name=nginx
+  - 'name: nginx-ingress'
+  - 'rules:'
+  - 'http:'
+  - 'paths:'
+  - 'pathType: Prefix'
+  - 'backend:'
+  - 'service:'
+  - 'name: nginx'
+  - 'port:'
+  - 'number: 80'
+  - kubectl apply -f ingress.yaml
+  - kubectl get ingress
+  - kubectl describe ingress nginx-ingress
+  verify:
+  - kubectl get svc nginx
+  - kubectl get deploy nginx -o jsonpath='{.status.readyReplicas}'
+  - kubectl get ingress
+  - kubectl describe ingress nginx-ingress
+  cleanup:
+  - kubectl delete deploy nginx --ignore-not-found
+  - kubectl delete svc nginx --ignore-not-found

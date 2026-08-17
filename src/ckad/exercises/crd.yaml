@@ -1,0 +1,45 @@
+- id: crd-01
+  domain: crd
+  domain_name: Custom Resource Definitions
+  weight: 0
+  title: Create the CRD resource in the K8S API
+  task: Create the CRD resource in the K8S API
+  hints: []
+  solution:
+  - kubectl apply -f operator-crd.yml
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: crd-02
+  domain: crd
+  domain_name: Custom Resource Definitions
+  weight: 0
+  title: Create custom object from the CRD
+  task: Create custom object from the CRD
+  hints: []
+  solution:
+  - kubectl apply -f operator.yml
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: crd-03
+  domain: crd
+  domain_name: Custom Resource Definitions
+  weight: 0
+  title: Listing operator
+  task: Listing operator
+  hints: []
+  solution:
+  - kubectl get operators
+  - or
+  - kubectl get operator
+  - or
+  - kubectl get op
+  verify:
+  - kubectl get operators
+  - kubectl get operator
+  - kubectl get op
+  cleanup:
+  - echo 'No cleanup needed'

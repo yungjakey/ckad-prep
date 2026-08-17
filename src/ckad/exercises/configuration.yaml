@@ -1,0 +1,487 @@
+- id: configuration-00
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a configmap named config with values foo=lala,foo2=lolo -> Display
+    its values
+  task: Create a configmap named config with values foo=lala,foo2=lolo
+  hints: []
+  solution:
+  - kubectl create configmap config --from-literal=foo=lala --from-literal=foo2=lolo
+  - '# Then: Display its values'
+  - kubectl get cm config -o yaml
+  - kubectl describe cm config
+  verify:
+  - kubectl get cm config -o jsonpath='{.data}'
+  - kubectl get cm config -o yaml
+  - kubectl describe cm config
+  cleanup:
+  - kubectl delete cm config --ignore-not-found
+- id: configuration-02
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create and display a configmap from a file
+  task: Create and display a configmap from a file
+  hints: []
+  solution:
+  - kubectl create cm configmap2 --from-file=config.txt
+  - kubectl get cm configmap2 -o yaml
+  verify:
+  - kubectl get cm configmap2 -o jsonpath='{.data}'
+  - kubectl get cm configmap2 -o yaml
+  cleanup:
+  - kubectl delete cm configmap2 --ignore-not-found
+- id: configuration-03
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create and display a configmap from a .env file
+  task: Create and display a configmap from a .env file
+  hints: []
+  solution:
+  - kubectl create cm configmap3 --from-env-file=config.env
+  - kubectl get cm configmap3 -o yaml
+  verify:
+  - kubectl get cm configmap3 -o jsonpath='{.data}'
+  - kubectl get cm configmap3 -o yaml
+  cleanup:
+  - kubectl delete cm configmap3 --ignore-not-found
+- id: configuration-04
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create and display a configmap from a file, giving the key 'special'
+  task: Create and display a configmap from a file, giving the key 'special'
+  hints: []
+  solution:
+  - kubectl create cm configmap4 --from-file=special=config4.txt
+  - kubectl describe cm configmap4
+  - kubectl get cm configmap4 -o yaml
+  verify:
+  - kubectl get cm configmap4 -o jsonpath='{.data}'
+  - kubectl describe cm configmap4
+  - kubectl get cm configmap4 -o yaml
+  cleanup:
+  - kubectl delete cm configmap4 --ignore-not-found
+- id: configuration-05
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a configMap called 'options' with the value var5=val5. Create a new
+    nginx pod that loads the value from variable 'var5' in an env variable called
+    'option'
+  task: Create a configMap called 'options' with the value var5=val5. Create a new
+    nginx pod that loads the value from variable 'var5' in an env variable called
+    'option'
+  hints: []
+  solution:
+  - kubectl create cm options --from-literal=var5=val5
+  - kubectl run nginx --image=nginx --restart=Never --dry-run=client -o yaml > pod.yaml
+  - kubectl create -f pod.yaml
+  - 'kubectl exec -it nginx -- env | grep option # will show ''option=val5'''
+  verify:
+  - kubectl get cm options -o jsonpath='{.data}'
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete cm options --ignore-not-found
+  - kubectl delete po nginx --ignore-not-found
+- id: configuration-06
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a configMap 'anotherone' with values 'var6=val6', 'var7=val7'. Load
+    this configMap as env variables into a new nginx pod
+  task: Create a configMap 'anotherone' with values 'var6=val6', 'var7=val7'. Load
+    this configMap as env variables into a new nginx pod
+  hints: []
+  solution:
+  - kubectl create configmap anotherone --from-literal=var6=val6 --from-literal=var7=val7
+  - kubectl run --restart=Never nginx --image=nginx -o yaml --dry-run=client > pod.yaml
+  - kubectl create -f pod.yaml
+  - kubectl exec -it nginx -- env
+  verify:
+  - kubectl get cm anotherone -o jsonpath='{.data}'
+  - kubectl get po --restart=Never -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete cm anotherone --ignore-not-found
+  - kubectl delete po --restart=Never --ignore-not-found
+- id: configuration-07
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a configMap 'cmvolume' with values 'var8=val8', 'var9=val9'. Load
+    this as a volume inside an nginx pod on path '/etc/lala'. Create the pod and 'ls'
+    into the '/etc/lala' directory.
+  task: Create a configMap 'cmvolume' with values 'var8=val8', 'var9=val9'. Load this
+    as a volume inside an nginx pod on path '/etc/lala'. Create the pod and 'ls' into
+    the '/etc/lala' directory.
+  hints:
+  - 'Configure a Security Context for a Pod or Container: https://kubernetes.io/docs/tasks/configure-pod-container/security-context/'
+  solution:
+  - kubectl create configmap cmvolume --from-literal=var8=val8 --from-literal=var9=val9
+  - kubectl run nginx --image=nginx --restart=Never -o yaml --dry-run=client > pod.yaml
+  - kubectl create -f pod.yaml
+  - kubectl exec -it nginx -- /bin/sh
+  - cd /etc/lala
+  - 'ls # will show var8 var9'
+  verify:
+  - kubectl get cm cmvolume -o jsonpath='{.data}'
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete cm cmvolume --ignore-not-found
+  - kubectl delete po nginx --ignore-not-found
+- id: configuration-08
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create the YAML for an nginx pod that runs with the user ID 101. No need
+    to create the pod
+  task: Create the YAML for an nginx pod that runs with the user ID 101. No need to
+    create the pod
+  hints: []
+  solution:
+  - kubectl run nginx --image=nginx --restart=Never --dry-run=client -o yaml > pod.yaml
+  verify:
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete po nginx --ignore-not-found
+- id: configuration-09
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create the YAML for an nginx pod that has the capabilities "NET_ADMIN", "SYS_TIME"
+    added to its single container
+  task: Create the YAML for an nginx pod that has the capabilities "NET_ADMIN", "SYS_TIME"
+    added to its single container
+  hints:
+  - 'Assign CPU Resources to Containers and Pods: https://kubernetes.io/docs/tasks/configure-pod-container/assign-cpu-resource/'
+  solution:
+  - kubectl run nginx --image=nginx --restart=Never --dry-run=client -o yaml > pod.yaml
+  verify:
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete po nginx --ignore-not-found
+- id: configuration-10
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create an nginx pod with requests cpu=100m,memory=256Mi and limits cpu=200m,memory=512Mi
+  task: Create an nginx pod with requests cpu=100m,memory=256Mi and limits cpu=200m,memory=512Mi
+  hints: []
+  solution:
+  - kubectl run nginx --image=nginx --dry-run=client -o yaml > pod.yaml
+  verify:
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete po nginx --ignore-not-found
+- id: configuration-11
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a namespace named limitrange with a LimitRange that limits pod memory
+    to a max of 500Mi and min of 100Mi
+  task: Create a namespace named limitrange with a LimitRange that limits pod memory
+    to a max of 500Mi and min of 100Mi
+  hints: []
+  solution:
+  - kubectl create ns limitrange
+  - kubectl apply -f 1.yaml
+  verify:
+  - kubectl get ns limitrange -o name
+  cleanup:
+  - kubectl delete ns limitrange --ignore-not-found
+- id: configuration-12
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Describe the namespace limitrange
+  task: Describe the namespace limitrange
+  hints: []
+  solution:
+  - kubectl describe limitrange ns-memory-limit -n limitrange
+  verify:
+  - kubectl describe limitrange ns-memory-limit -n limitrange
+  cleanup:
+  - echo 'No cleanup needed'
+- id: configuration-13
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create an nginx pod that requests 250Mi of memory in the limitrange namespace
+  task: Create an nginx pod that requests 250Mi of memory in the limitrange namespace
+  hints: []
+  solution:
+  - kubectl apply -f 2.yaml
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: configuration-14
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create ResourceQuota in namespace `one` with hard requests `cpu=1`, `memory=1Gi`
+    and hard limits `cpu=2`, `memory=2Gi`.
+  task: Create ResourceQuota in namespace `one` with hard requests `cpu=1`, `memory=1Gi`
+    and hard limits `cpu=2`, `memory=2Gi`.
+  hints: []
+  solution:
+  - kubectl create ns one
+  - kubectl apply -f rq-one.yaml
+  - kubectl create quota my-rq --namespace=one --hard=requests.cpu=1,requests.memory=1Gi,limits.cpu=2,limits.memory=2Gi
+  verify:
+  - kubectl get ns one -o name
+  cleanup:
+  - kubectl delete ns one --ignore-not-found
+  - kubectl delete quota my-rq -n default --ignore-not-found
+- id: configuration-15
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Attempt to create a pod with resource requests `cpu=2`, `memory=3Gi` and
+    limits `cpu=3`, `memory=4Gi` in namespace `one`
+  task: Attempt to create a pod with resource requests `cpu=2`, `memory=3Gi` and limits
+    `cpu=3`, `memory=4Gi` in namespace `one`
+  hints: []
+  solution:
+  - kubectl create -f pod.yaml
+  - 'Error from server (Forbidden): error when creating "pod.yaml": pods "nginx" is
+    forbidden: exceeded quota: my-rq, requested: limits.cpu=3,limits.memory=4Gi,requests.cpu=2,requests.memory=3Gi,
+    used: limits.cpu=0,limits.memory=0,requests.cpu=0,requests.memory=0, limited:
+    limits.cpu=2,limits.memory=2Gi,requests.cpu=1,requests.memory=1Gi'
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: configuration-16
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a pod with resource requests `cpu=0.5`, `memory=1Gi` and limits `cpu=1`,
+    `memory=2Gi` in namespace `one`
+  task: Create a pod with resource requests `cpu=0.5`, `memory=1Gi` and limits `cpu=1`,
+    `memory=2Gi` in namespace `one`
+  hints:
+  - 'Secrets: https://kubernetes.io/docs/concepts/configuration/secret/'
+  - 'Distribute Credentials Securely Using Secrets: https://kubernetes.io/docs/tasks/inject-data-application/distribute-credentials-secure/'
+  solution:
+  - kubectl create -f pod2.yaml
+  - kubectl get resourcequota -n one
+  verify:
+  - kubectl get resourcequota -n one
+  cleanup:
+  - echo 'No cleanup needed'
+- id: configuration-17
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a secret called mysecret with the values password=mypass
+  task: Create a secret called mysecret with the values password=mypass
+  hints: []
+  solution:
+  - kubectl create secret generic mysecret --from-literal=password=mypass
+  verify:
+  - kubectl get secret mysecret -o jsonpath='{.data}'
+  cleanup:
+  - kubectl delete secret mysecret --ignore-not-found
+- id: configuration-18
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a secret called mysecret2 that gets key/value from a file -> Get the
+    value of mysecret2
+  task: Create a secret called mysecret2 that gets key/value from a file
+  hints: []
+  solution:
+  - kubectl create secret generic mysecret2 --from-file=username
+  - '# Then: Get the value of mysecret2'
+  - kubectl get secret mysecret2 -o yaml
+  - 'echo -n YWRtaW4= | base64 -d # on MAC it is -D, which decodes the value and shows
+    ''admin'''
+  - kubectl get secret mysecret2 -o jsonpath='{.data.username}' | base64 -d
+  - kubectl get secret mysecret2 --template '{{.data.username}}' | base64 -d
+  - kubectl get secret mysecret2 -o json | jq -r .data.username | base64 -d
+  verify:
+  - kubectl get secret mysecret2 -o jsonpath='{.data}'
+  - kubectl get secret mysecret2 -o yaml
+  - kubectl get secret mysecret2 -o jsonpath='{.data.username}' | base64 -d
+  - kubectl get secret mysecret2 --template '{{.data.username}}' | base64 -d
+  - kubectl get secret mysecret2 -o json | jq -r .data.username | base64 -d
+  cleanup:
+  - kubectl delete secret mysecret2 --ignore-not-found
+- id: configuration-20
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create an nginx pod that mounts the secret mysecret2 in a volume on path
+    /etc/foo -> Delete the pod you just created and mount the variable 'username'
+    from secret mysecret2 onto a new nginx pod in env variable called 'USERNAME'
+  task: Create an nginx pod that mounts the secret mysecret2 in a volume on path /etc/foo
+  hints: []
+  solution:
+  - kubectl run nginx --image=nginx --restart=Never -o yaml --dry-run=client > pod.yaml
+  - kubectl create -f pod.yaml
+  - kubectl exec -it nginx -- /bin/bash
+  - ls /etc/foo
+  - 'cat /etc/foo/username # shows admin'
+  - '# Then: Delete the pod you just created and mount the variable ''username'' from
+    secret mysecret2 onto a new nginx pod in env variable called ''USERNAME'''
+  - kubectl delete po nginx
+  - kubectl run nginx --image=nginx --restart=Never -o yaml --dry-run=client > pod.yaml
+  - kubectl create -f pod.yaml
+  - 'kubectl exec -it nginx -- env | grep USERNAME | cut -d ''='' -f 2 # will show
+    ''admin'''
+  verify:
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete po nginx --ignore-not-found
+- id: configuration-22
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a Secret named 'ext-service-secret' in the namespace 'secret-ops'.
+    Then, provide the key-value pair API_KEY=LmLHbYhsgWZwNifiqaRorH8T as literal.
+  task: Create a Secret named 'ext-service-secret' in the namespace 'secret-ops'.
+    Then, provide the key-value pair API_KEY=LmLHbYhsgWZwNifiqaRorH8T as literal.
+  hints: []
+  solution:
+  - export ns="-n secret-ops"
+  - export do="--dry-run=client -oyaml"
+  - k create secret generic ext-service-secret --from-literal=API_KEY=LmLHbYhsgWZwNifiqaRorH8T
+    $ns $do > sc.yaml
+  - k apply -f sc.yaml
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: configuration-23
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Consuming the Secret. Create a Pod named 'consumer' with the image 'nginx'
+    in the namespace 'secret-ops' and consume the Secret as an environment variable.
+    Then, open an interactive shell to the Pod, and print all environment variables.
+  task: Consuming the Secret. Create a Pod named 'consumer' with the image 'nginx'
+    in the namespace 'secret-ops' and consume the Secret as an environment variable.
+    Then, open an interactive shell to the Pod, and print all environment variables.
+  hints: []
+  solution:
+  - export ns="-n secret-ops"
+  - export do="--dry-run=client -oyaml"
+  - k run consumer --image=nginx $ns $do > nginx.yaml
+  - k create $ns -f nginx.yaml
+  - k exec -it $ns consumer -- /bin/sh
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: configuration-24
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a Secret named 'my-secret' of type 'kubernetes.io/ssh-auth' in the
+    namespace 'secret-ops'. Define a single key named 'ssh-privatekey', and point
+    it to the file 'id_rsa' in this directory.
+  task: Create a Secret named 'my-secret' of type 'kubernetes.io/ssh-auth' in the
+    namespace 'secret-ops'. Define a single key named 'ssh-privatekey', and point
+    it to the file 'id_rsa' in this directory.
+  hints: []
+  solution:
+  - export do="--dry-run=client -oyaml"
+  - export ns="-n secret-ops"
+  - ssh-keygen
+  - k create secret generic my-secret $ns --type="kubernetes.io/ssh-auth" --from-file=ssh-privatekey=id_rsa
+    $do > sc.yaml
+  - k apply -f sc.yaml
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: configuration-25
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a Pod named 'consumer' with the image 'nginx' in the namespace 'secret-ops',
+    and consume the Secret as Volume. Mount the Secret as Volume to the path /var/app
+    with read-only access. Open an interactive shell to the Pod, and render the contents
+    of the file.
+  task: Create a Pod named 'consumer' with the image 'nginx' in the namespace 'secret-ops',
+    and consume the Secret as Volume. Mount the Secret as Volume to the path /var/app
+    with read-only access. Open an interactive shell to the Pod, and render the contents
+    of the file.
+  hints:
+  - 'Configure Service Accounts for Pods: https://kubernetes.io/docs/tasks/configure-pod-container/configure-service-account/'
+  solution:
+  - export ns="-n secret-ops"
+  - export do="--dry-run=client -oyaml"
+  - k run consumer --image=nginx $ns $do > nginx.yaml
+  - k exec -it $ns consumer -- /bin/sh
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: configuration-26
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: See all the service accounts of the cluster in all namespaces
+  task: See all the service accounts of the cluster in all namespaces
+  hints: []
+  solution:
+  - kubectl get sa --all-namespaces
+  - kubectl get sa -A
+  verify:
+  - kubectl get sa --all-namespaces
+  - kubectl get sa -A
+  cleanup:
+  - echo 'No cleanup needed'
+- id: configuration-27
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create a new serviceaccount called 'myuser'
+  task: Create a new serviceaccount called 'myuser'
+  hints: []
+  solution:
+  - kubectl create sa myuser
+  - kubectl get sa default -o yaml > sa.yaml
+  - kubectl create -f sa.yaml
+  verify:
+  - kubectl get sa myuser -o jsonpath='{.metadata.name}'
+  - kubectl get sa default -o yaml > sa.yaml
+  cleanup:
+  - kubectl delete sa myuser --ignore-not-found
+- id: configuration-28
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Create an nginx pod that uses 'myuser' as a service account
+  task: Create an nginx pod that uses 'myuser' as a service account
+  hints: []
+  solution:
+  - kubectl run nginx --image=nginx --restart=Never -o yaml --dry-run=client > pod.yaml
+  - kubectl create -f pod.yaml
+  - 'kubectl get pod nginx -o jsonpath=''{.spec.serviceAccountName}'' # output: myuser'
+  - 'kubectl exec -it nginx -- cat /var/run/secrets/kubernetes.io/serviceaccount/token
+    # to check if the ServiceAccount token is mounted inside the Pod. Starting from
+    Kubernetes 1.24+, the token is dynamically projected into the Pod'
+  verify:
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  - 'kubectl get pod nginx -o jsonpath=''{.spec.serviceAccountName}'' # output: myuser'
+  cleanup:
+  - kubectl delete po nginx --ignore-not-found
+- id: configuration-29
+  domain: configuration
+  domain_name: Configuration
+  weight: 18
+  title: Generate an API token for the service account 'myuser'
+  task: Generate an API token for the service account 'myuser'
+  hints: []
+  solution:
+  - kubectl create token myuser
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'

@@ -1,5 +1,8 @@
-# note that killer.sh questions are protected by NDA
-*
-!.gitignore
-!README.md
-!simulations/.gitkeep 
+.venv/
+.ruff_cache/
+__pycache__/
+*.pyc
+dist/
+build/
+*.egg-info/
+simulations/

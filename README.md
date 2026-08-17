@@ -1,6 +1,8 @@
 # CKAD Exam Reference
 
-## Init
+## Cheat Sheet
+
+### Init
 ```bash
 set -o vi
 
@@ -275,5 +277,36 @@ helm upgrade <release> <chart>                   # upgrade to latest
 helm delete <release>
 helm list                                        # list all releases
 helm list --pending                              # find stuck/broken releases
+```
+
+## Practice Tool
+
+Interactive CKAD prep on a local kind cluster with session management and fzf pickers.
+
+### Setup
+```bash
+uv sync
+scripts/setup.sh
+```
+
+### Run
+```bash
+uv run ckad run                  # 10 random exercises
+uv run ckad run -n 5 -d config   # 5 from one domain
+uv run ckad run --review         # redo failures
+```
+
+### Sessions
+```bash
+uv run ckad sessions             # fzf picker to browse/attach sessions
+uv run ckad attach <id>          # resume from where you left off
+uv run ckad kill                 # fzf picker to kill session + k8s namespaces
+uv run ckad ls                   # list sessions
+uv run ckad results              # fzf picker for session results
+```
+
+### Teardown
+```bash
+scripts/cleanup.sh
 ```
 

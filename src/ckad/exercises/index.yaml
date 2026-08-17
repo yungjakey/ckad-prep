@@ -1,0 +1,568 @@
+- id: core_concepts-00
+  domain: core_concepts
+  title: Create a namespace called 'mynamespace' and a pod with image nginx called
+    nginx on this namespace
+  weight: 13
+- id: core_concepts-01
+  domain: core_concepts
+  title: Create the pod that was just described using YAML
+  weight: 13
+- id: core_concepts-02
+  domain: core_concepts
+  title: Create a busybox pod (using kubectl command) that runs the command "env".
+    Run it and see the output
+  weight: 13
+- id: core_concepts-03
+  domain: core_concepts
+  title: Create a busybox pod (using YAML) that runs the command "env". Run it and
+    see the output -> Get the YAML for a new namespace called 'myns' without creating
+    it
+  weight: 13
+- id: core_concepts-05
+  domain: core_concepts
+  title: Create the YAML for a new ResourceQuota called 'myrq' with hard limits of
+    1 CPU, 1G memory and 2 pods without creating it
+  weight: 13
+- id: core_concepts-06
+  domain: core_concepts
+  title: Get pods on all namespaces
+  weight: 13
+- id: core_concepts-07
+  domain: core_concepts
+  title: Create a pod with image nginx called nginx and expose traffic on port 80
+  weight: 13
+- id: core_concepts-08
+  domain: core_concepts
+  title: Change pod's image to nginx:1.24.0. Observe that the container will be restarted
+    as soon as the image gets pulled
+  weight: 13
+- id: core_concepts-09
+  domain: core_concepts
+  title: Get nginx pod's ip created in previous step, use a temp busybox image to
+    wget its '/'
+  weight: 13
+- id: core_concepts-10
+  domain: core_concepts
+  title: Get pod's YAML
+  weight: 13
+- id: core_concepts-11
+  domain: core_concepts
+  title: Get information about the pod, including details about potential issues (e.g.
+    pod hasn't started)
+  weight: 13
+- id: core_concepts-12
+  domain: core_concepts
+  title: Get pod logs
+  weight: 13
+- id: core_concepts-13
+  domain: core_concepts
+  title: If pod crashed and restarted, get logs about the previous instance
+  weight: 13
+- id: core_concepts-14
+  domain: core_concepts
+  title: Execute a simple shell on the nginx pod
+  weight: 13
+- id: core_concepts-15
+  domain: core_concepts
+  title: Create a busybox pod that echoes 'hello world' and then exits
+  weight: 13
+- id: core_concepts-16
+  domain: core_concepts
+  title: Do the same, but have the pod deleted automatically when it's completed ->
+    Create an nginx pod and set an env value as 'var1=val1'. Check the env value existence
+    within the pod
+  weight: 13
+- id: multi_container_pods-00
+  domain: multi_container_pods
+  title: Create a Pod with two containers, both with image busybox and command "echo
+    hello; sleep 3600". Connect to the second container and run 'ls' -> Create a pod
+    with an nginx container exposed on port 80. Add a busybox init container which
+    downloads a page using 'echo "Test" > /work-dir/index.html'. Make a volume of
+    type emptyDir and mount it in both containers. For the nginx container, mount
+    it on "/usr/share/nginx/html" and for the initcontainer, mount it on "/work-dir".
+    When done, get the IP of the created pod and create a busybox pod and run "wget
+    -O- IP"
+  weight: 10
+- id: pod_design-00
+  domain: pod_design
+  title: Create 3 pods with names nginx1,nginx2,nginx3. All of them should have the
+    label app=v1
+  weight: 20
+- id: pod_design-01
+  domain: pod_design
+  title: Show all labels of the pods
+  weight: 20
+- id: pod_design-02
+  domain: pod_design
+  title: Change the labels of pod 'nginx2' to be app=v2 -> Get the label 'app' for
+    the pods (show a column with APP labels)
+  weight: 20
+- id: pod_design-04
+  domain: pod_design
+  title: Get only the 'app=v2' pods
+  weight: 20
+- id: pod_design-05
+  domain: pod_design
+  title: Get 'app=v2' and not 'tier=frontend' pods
+  weight: 20
+- id: pod_design-06
+  domain: pod_design
+  title: Add a new label tier=web to all pods having 'app=v2' or 'app=v1' labels
+  weight: 20
+- id: pod_design-07
+  domain: pod_design
+  title: 'Add an annotation ''owner: marketing'' to all pods having ''app=v2'' label'
+  weight: 20
+- id: pod_design-08
+  domain: pod_design
+  title: Remove the 'app' label from the pods we created before
+  weight: 20
+- id: pod_design-09
+  domain: pod_design
+  title: Annotate pods nginx1, nginx2, nginx3 with "description='my description'"
+    value -> Check the annotations for pod nginx1
+  weight: 20
+- id: pod_design-11
+  domain: pod_design
+  title: Remove the annotations for these three pods
+  weight: 20
+- id: pod_design-12
+  domain: pod_design
+  title: Remove these pods to have a clean state in your cluster
+  weight: 20
+- id: pod_design-13
+  domain: pod_design
+  title: Create a pod that will be deployed to a Node that has the label 'accelerator=nvidia-tesla-p100'
+  weight: 20
+- id: pod_design-14
+  domain: pod_design
+  title: Create a pod that will be placed on node `node01` using `nodeName`
+  weight: 20
+- id: pod_design-15
+  domain: pod_design
+  title: Taint a node with key `tier` and value `frontend` with the effect `NoSchedule`.
+    Then, create a pod that tolerates this taint.
+  weight: 20
+- id: pod_design-16
+  domain: pod_design
+  title: Create a pod that will be placed on node `controlplane`. Use nodeSelector
+    and tolerations.
+  weight: 20
+- id: pod_design-17
+  domain: pod_design
+  title: Create a deployment with image nginx:1.18.0, called nginx, having 2 replicas,
+    defining port 80 as the port that this container exposes (don't create a service
+    for this deployment) -> View the YAML of this deployment -> View the YAML of the
+    replica set that was created by this deployment -> Get the YAML for one of the
+    pods
+  weight: 20
+- id: pod_design-21
+  domain: pod_design
+  title: Check how the deployment rollout is going
+  weight: 20
+- id: pod_design-22
+  domain: pod_design
+  title: Update the nginx image to nginx:1.19.8 -> Check the rollout history and confirm
+    that the replicas are OK
+  weight: 20
+- id: pod_design-24
+  domain: pod_design
+  title: Undo the latest rollout and verify that new pods have the old image (nginx:1.18.0)
+  weight: 20
+- id: pod_design-25
+  domain: pod_design
+  title: Do an on-purpose update of the deployment with a wrong image nginx:1.91
+  weight: 20
+- id: pod_design-26
+  domain: pod_design
+  title: Verify that something's wrong with the rollout
+  weight: 20
+- id: pod_design-27
+  domain: pod_design
+  title: Return the deployment to the second revision (number 2) and verify the image
+    is nginx:1.19.8 -> Check the details of the fourth revision (number 4)
+  weight: 20
+- id: pod_design-29
+  domain: pod_design
+  title: Scale the deployment to 5 replicas
+  weight: 20
+- id: pod_design-30
+  domain: pod_design
+  title: Autoscale the deployment, pods between 5 and 10, targeting CPU utilization
+    at 80%
+  weight: 20
+- id: pod_design-31
+  domain: pod_design
+  title: Pause the rollout of the deployment
+  weight: 20
+- id: pod_design-32
+  domain: pod_design
+  title: Update the image to nginx:1.19.9 and check that there's nothing going on,
+    since we paused the rollout
+  weight: 20
+- id: pod_design-33
+  domain: pod_design
+  title: Resume the rollout and check that the nginx:1.19.9 image has been applied
+  weight: 20
+- id: pod_design-34
+  domain: pod_design
+  title: Delete the deployment and the horizontal pod autoscaler you created
+  weight: 20
+- id: pod_design-36
+  domain: pod_design
+  title: Create a job named pi with image perl:5.34 that runs the command with arguments
+    "perl -Mbignum=bpi -wle 'print bpi(2000)'" -> Wait till it's done, get the output
+  weight: 20
+- id: pod_design-38
+  domain: pod_design
+  title: Create a job with the image busybox that executes the command 'echo hello;sleep
+    30;echo world'
+  weight: 20
+- id: pod_design-39
+  domain: pod_design
+  title: Follow the logs for the pod (you'll wait for 30 seconds)
+  weight: 20
+- id: pod_design-40
+  domain: pod_design
+  title: See the status of the job, describe it and see the logs
+  weight: 20
+- id: pod_design-41
+  domain: pod_design
+  title: Delete the job
+  weight: 20
+- id: pod_design-42
+  domain: pod_design
+  title: Create the same job, make it run 5 times, one after the other. Verify its
+    status and delete it
+  weight: 20
+- id: pod_design-43
+  domain: pod_design
+  title: Create the same job, but make it run 5 parallel times
+  weight: 20
+- id: pod_design-44
+  domain: pod_design
+  title: Create a job but ensure that it will be automatically terminated by kubernetes
+    if it takes more than 30 seconds to execute
+  weight: 20
+- id: pod_design-45
+  domain: pod_design
+  title: Create a cron job with image busybox that runs on a schedule of "*/1 * *
+    * *" and writes 'date; echo Hello from the Kubernetes cluster' to standard output
+    -> See its logs and delete it -> Create the same cron job again, and watch the
+    status. Once it ran, check which job ran by the created cron job. Check the log,
+    and delete the cron job
+  weight: 20
+- id: pod_design-48
+  domain: pod_design
+  title: Create a cron job with image busybox that runs every minute and writes 'date;
+    echo Hello from the Kubernetes cluster' to standard output. The cron job should
+    be terminated if it takes more than 17 seconds to start execution after its scheduled
+    time (i.e. the job missed its scheduled time).
+  weight: 20
+- id: pod_design-49
+  domain: pod_design
+  title: Create a cron job with image busybox that runs every minute and writes 'date;
+    echo Hello from the Kubernetes cluster' to standard output. The cron job should
+    be terminated if it successfully starts but takes more than 12 seconds to complete
+    execution.
+  weight: 20
+- id: pod_design-50
+  domain: pod_design
+  title: Keep only the last 2 successful and 1 failed runs of a CronJob
+  weight: 20
+- id: pod_design-51
+  domain: pod_design
+  title: Create a job from cronjob.
+  weight: 20
+- id: configuration-00
+  domain: configuration
+  title: Create a configmap named config with values foo=lala,foo2=lolo -> Display
+    its values
+  weight: 18
+- id: configuration-02
+  domain: configuration
+  title: Create and display a configmap from a file
+  weight: 18
+- id: configuration-03
+  domain: configuration
+  title: Create and display a configmap from a .env file
+  weight: 18
+- id: configuration-04
+  domain: configuration
+  title: Create and display a configmap from a file, giving the key 'special'
+  weight: 18
+- id: configuration-05
+  domain: configuration
+  title: Create a configMap called 'options' with the value var5=val5. Create a new
+    nginx pod that loads the value from variable 'var5' in an env variable called
+    'option'
+  weight: 18
+- id: configuration-06
+  domain: configuration
+  title: Create a configMap 'anotherone' with values 'var6=val6', 'var7=val7'. Load
+    this configMap as env variables into a new nginx pod
+  weight: 18
+- id: configuration-07
+  domain: configuration
+  title: Create a configMap 'cmvolume' with values 'var8=val8', 'var9=val9'. Load
+    this as a volume inside an nginx pod on path '/etc/lala'. Create the pod and 'ls'
+    into the '/etc/lala' directory.
+  weight: 18
+- id: configuration-08
+  domain: configuration
+  title: Create the YAML for an nginx pod that runs with the user ID 101. No need
+    to create the pod
+  weight: 18
+- id: configuration-09
+  domain: configuration
+  title: Create the YAML for an nginx pod that has the capabilities "NET_ADMIN", "SYS_TIME"
+    added to its single container
+  weight: 18
+- id: configuration-10
+  domain: configuration
+  title: Create an nginx pod with requests cpu=100m,memory=256Mi and limits cpu=200m,memory=512Mi
+  weight: 18
+- id: configuration-11
+  domain: configuration
+  title: Create a namespace named limitrange with a LimitRange that limits pod memory
+    to a max of 500Mi and min of 100Mi
+  weight: 18
+- id: configuration-12
+  domain: configuration
+  title: Describe the namespace limitrange
+  weight: 18
+- id: configuration-13
+  domain: configuration
+  title: Create an nginx pod that requests 250Mi of memory in the limitrange namespace
+  weight: 18
+- id: configuration-14
+  domain: configuration
+  title: Create ResourceQuota in namespace `one` with hard requests `cpu=1`, `memory=1Gi`
+    and hard limits `cpu=2`, `memory=2Gi`.
+  weight: 18
+- id: configuration-15
+  domain: configuration
+  title: Attempt to create a pod with resource requests `cpu=2`, `memory=3Gi` and
+    limits `cpu=3`, `memory=4Gi` in namespace `one`
+  weight: 18
+- id: configuration-16
+  domain: configuration
+  title: Create a pod with resource requests `cpu=0.5`, `memory=1Gi` and limits `cpu=1`,
+    `memory=2Gi` in namespace `one`
+  weight: 18
+- id: configuration-17
+  domain: configuration
+  title: Create a secret called mysecret with the values password=mypass
+  weight: 18
+- id: configuration-18
+  domain: configuration
+  title: Create a secret called mysecret2 that gets key/value from a file -> Get the
+    value of mysecret2
+  weight: 18
+- id: configuration-20
+  domain: configuration
+  title: Create an nginx pod that mounts the secret mysecret2 in a volume on path
+    /etc/foo -> Delete the pod you just created and mount the variable 'username'
+    from secret mysecret2 onto a new nginx pod in env variable called 'USERNAME'
+  weight: 18
+- id: configuration-22
+  domain: configuration
+  title: Create a Secret named 'ext-service-secret' in the namespace 'secret-ops'.
+    Then, provide the key-value pair API_KEY=LmLHbYhsgWZwNifiqaRorH8T as literal.
+  weight: 18
+- id: configuration-23
+  domain: configuration
+  title: Consuming the Secret. Create a Pod named 'consumer' with the image 'nginx'
+    in the namespace 'secret-ops' and consume the Secret as an environment variable.
+    Then, open an interactive shell to the Pod, and print all environment variables.
+  weight: 18
+- id: configuration-24
+  domain: configuration
+  title: Create a Secret named 'my-secret' of type 'kubernetes.io/ssh-auth' in the
+    namespace 'secret-ops'. Define a single key named 'ssh-privatekey', and point
+    it to the file 'id_rsa' in this directory.
+  weight: 18
+- id: configuration-25
+  domain: configuration
+  title: Create a Pod named 'consumer' with the image 'nginx' in the namespace 'secret-ops',
+    and consume the Secret as Volume. Mount the Secret as Volume to the path /var/app
+    with read-only access. Open an interactive shell to the Pod, and render the contents
+    of the file.
+  weight: 18
+- id: configuration-26
+  domain: configuration
+  title: See all the service accounts of the cluster in all namespaces
+  weight: 18
+- id: configuration-27
+  domain: configuration
+  title: Create a new serviceaccount called 'myuser'
+  weight: 18
+- id: configuration-28
+  domain: configuration
+  title: Create an nginx pod that uses 'myuser' as a service account
+  weight: 18
+- id: configuration-29
+  domain: configuration
+  title: Generate an API token for the service account 'myuser'
+  weight: 18
+- id: observability-00
+  domain: observability
+  title: Create an nginx pod with a liveness probe that just runs the command 'ls'.
+    Save its YAML in pod.yaml. Run it, check its probe status, delete it. -> Modify
+    the pod.yaml file so that liveness probe starts kicking in after 5 seconds whereas
+    the interval between probes would be 5 seconds. Run it, check the probe, delete
+    it. -> Create an nginx pod (that includes port 80) with an HTTP readinessProbe
+    on path '/' on port 80. Again, run it, check the readinessProbe, delete it.
+  weight: 18
+- id: observability-03
+  domain: observability
+  title: Lots of pods are running in `qa`,`alan`,`test`,`production` namespaces.  All
+    of these pods are configured with liveness probe.  Please list all pods whose
+    liveness probe are failed in the format of `<namespace>/<pod name>` per line.
+  weight: 18
+- id: observability-04
+  domain: observability
+  title: 'Create a busybox pod that runs `i=0; while true; do echo "$i: $(date)";
+    i=$((i+1)); sleep 1; done`. Check its logs'
+  weight: 18
+- id: observability-05
+  domain: observability
+  title: Create a busybox pod that runs 'ls /notexist'. Determine if there's an error
+    (of course there is), see it. In the end, delete the pod
+  weight: 18
+- id: observability-06
+  domain: observability
+  title: Create a busybox pod that runs 'notexist'. Determine if there's an error
+    (of course there is), see it. In the end, delete the pod forcefully with a 0 grace
+    period
+  weight: 18
+- id: observability-07
+  domain: observability
+  title: Get CPU/memory utilization for nodes ([metrics-server](https://github.com/kubernetes-incubator/metrics-server)
+    must be running)
+  weight: 18
+- id: services_networking-00
+  domain: services_networking
+  title: Create a pod with image nginx called nginx and expose its port 80 -> Confirm
+    that ClusterIP has been created. Also check endpoints
+  weight: 13
+- id: services_networking-02
+  domain: services_networking
+  title: Get service's ClusterIP, create a temp busybox pod and 'hit' that IP with
+    wget
+  weight: 13
+- id: services_networking-03
+  domain: services_networking
+  title: Convert the ClusterIP to NodePort for the same service and find the NodePort
+    port. Hit service using Node's IP. Delete the service and the pod at the end.
+  weight: 13
+- id: services_networking-04
+  domain: services_networking
+  title: Create a deployment called foo using image 'dgkanatsios/simpleapp' (a simple
+    server that returns hostname) and 3 replicas. Label it as 'app=foo'. Declare that
+    containers in this pod will accept traffic on port 8080 (do NOT create a service
+    yet) -> Get the pod IPs. Create a temp busybox pod and try hitting them on port
+    8080 -> Create a service that exposes the deployment on port 6262. Verify its
+    existence, check the endpoints
+  weight: 13
+- id: services_networking-07
+  domain: services_networking
+  title: Create a temp busybox pod and connect via wget to foo service. Verify that
+    each time there's a different hostname returned. Delete deployment and services
+    to cleanup the cluster
+  weight: 13
+- id: services_networking-08
+  domain: services_networking
+  title: 'Create an nginx deployment of 2 replicas, expose it via a ClusterIP service
+    on port 80. Create a NetworkPolicy so that only pods with labels ''access: granted''
+    can access the pods in this deployment and apply it'
+  weight: 13
+- id: services_networking-09
+  domain: services_networking
+  title: Create an Ingress resource to expose an existing service using HTTP path
+    routing
+  weight: 13
+- id: state_persistence-00
+  domain: state_persistence
+  title: Create busybox pod with two containers, each one will have the image busybox
+    and will run the 'sleep 3600' command. Make both containers mount an emptyDir
+    at '/etc/foo'. Connect to the second busybox, write the first column of '/etc/passwd'
+    file to '/etc/foo/passwd'. Connect to the first busybox and write '/etc/foo/passwd'
+    file to standard output. Delete pod.
+  weight: 8
+- id: state_persistence-01
+  domain: state_persistence
+  title: 'Create a PersistentVolume of 10Gi, called ''myvolume''. Make it have accessMode
+    of ''ReadWriteOnce'' and ''ReadWriteMany'', storageClassName ''normal'', mounted
+    on hostPath ''/etc/foo''. Save it on pv.yaml, add it to the cluster. Show the
+    PersistentVolumes that exist on the cluster -> Create a PersistentVolumeClaim
+    for this PersistentVolume, called ''mypvc'', a request of 4Gi and an accessMode
+    of ReadWriteOnce, with the storageClassName of normal, and save it on pvc.yaml.
+    Create it on the cluster. Show the PersistentVolumeClaims of the cluster. Show
+    the PersistentVolumes of the cluster -> Create a busybox pod with command ''sleep
+    3600'', save it on pod.yaml. Mount the PersistentVolumeClaim to ''/etc/foo''.
+    Connect to the ''busybox'' pod, and copy the ''/etc/passwd'' file to ''/etc/foo/passwd''
+    -> Create a second pod which is identical with the one you just created (you can
+    easily do it by changing the ''name'' property on pod.yaml). Connect to it and
+    verify that ''/etc/foo'' contains the ''passwd'' file. Delete pods to cleanup.
+    Note: If you can''t see the file from the second pod, can you figure out why?
+    What would you do to fix that?'
+  weight: 8
+- id: state_persistence-05
+  domain: state_persistence
+  title: Create a busybox pod with 'sleep 3600' as arguments. Copy '/etc/passwd' from
+    the pod to your local folder
+  weight: 8
+- id: helm-00
+  domain: helm
+  title: Creating a basic Helm chart
+  weight: 0
+- id: helm-01
+  domain: helm
+  title: Running a Helm chart
+  weight: 0
+- id: helm-02
+  domain: helm
+  title: Find pending Helm deployments on all namespaces
+  weight: 0
+- id: helm-03
+  domain: helm
+  title: Uninstall a Helm release
+  weight: 0
+- id: helm-04
+  domain: helm
+  title: Upgrading a Helm chart
+  weight: 0
+- id: helm-05
+  domain: helm
+  title: Using Helm repo
+  weight: 0
+- id: helm-06
+  domain: helm
+  title: Download a Helm chart from a repository
+  weight: 0
+- id: helm-07
+  domain: helm
+  title: Add the Bitnami repo at https://charts.bitnami.com/bitnami to Helm
+  weight: 0
+- id: helm-08
+  domain: helm
+  title: Write the contents of the values.yaml file of the `bitnami/node` chart to
+    standard output
+  weight: 0
+- id: helm-09
+  domain: helm
+  title: Install the `bitnami/node` chart setting the number of replicas to 5
+  weight: 0
+- id: crd-01
+  domain: crd
+  title: Create the CRD resource in the K8S API
+  weight: 0
+- id: crd-02
+  domain: crd
+  title: Create custom object from the CRD
+  weight: 0
+- id: crd-03
+  domain: crd
+  title: Listing operator
+  weight: 0

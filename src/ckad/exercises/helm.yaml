@@ -1,0 +1,141 @@
+- id: helm-00
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Creating a basic Helm chart
+  task: Creating a basic Helm chart
+  hints: []
+  solution:
+  - 'helm create chart-test ## this would create a helm'
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: helm-01
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Running a Helm chart
+  task: Running a Helm chart
+  hints: []
+  solution:
+  - helm install -f myvalues.yaml myredis ./redis
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: helm-02
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Find pending Helm deployments on all namespaces
+  task: Find pending Helm deployments on all namespaces
+  hints: []
+  solution:
+  - helm list --pending -A
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: helm-03
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Uninstall a Helm release
+  task: Uninstall a Helm release
+  hints: []
+  solution:
+  - helm uninstall -n namespace release_name
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: helm-04
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Upgrading a Helm chart
+  task: Upgrading a Helm chart
+  hints: []
+  solution:
+  - helm upgrade -f myvalues.yaml -f override.yaml redis ./redis
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: helm-05
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Using Helm repo
+  task: Using Helm repo
+  hints: []
+  solution:
+  - helm repo add [NAME] [URL]  [flags]
+  - helm repo list / helm repo ls
+  - helm repo remove [REPO1] [flags]
+  - helm repo update / helm repo up
+  - helm repo update [REPO1] [flags]
+  - helm repo index [DIR] [flags]
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: helm-06
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Download a Helm chart from a repository
+  task: Download a Helm chart from a repository
+  hints: []
+  solution:
+  - 'helm pull [chart URL | repo/chartname] [...] [flags] ## this would download a
+    helm, not install'
+  - 'helm pull --untar [rep/chartname] # untar the chart after downloading it'
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: helm-07
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Add the Bitnami repo at https://charts.bitnami.com/bitnami to Helm
+  task: Add the Bitnami repo at https://charts.bitnami.com/bitnami to Helm
+  hints: []
+  solution:
+  - helm repo add bitnami https://charts.bitnami.com/bitnami
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: helm-08
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Write the contents of the values.yaml file of the `bitnami/node` chart to
+    standard output
+  task: Write the contents of the values.yaml file of the `bitnami/node` chart to
+    standard output
+  hints: []
+  solution:
+  - helm show values bitnami/node
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: helm-09
+  domain: helm
+  domain_name: Helm
+  weight: 0
+  title: Install the `bitnami/node` chart setting the number of replicas to 5
+  task: Install the `bitnami/node` chart setting the number of replicas to 5
+  hints: []
+  solution:
+  - helm show values bitnami/node | grep -i replica
+  - 'replicaCount: 1'
+  - helm install mynode bitnami/node --set replicaCount=5
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'

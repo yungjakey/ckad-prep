@@ -1,0 +1,138 @@
+- id: observability-00
+  domain: observability
+  domain_name: Observability
+  weight: 18
+  title: Create an nginx pod with a liveness probe that just runs the command 'ls'.
+    Save its YAML in pod.yaml. Run it, check its probe status, delete it. -> Modify
+    the pod.yaml file so that liveness probe starts kicking in after 5 seconds whereas
+    the interval between probes would be 5 seconds. Run it, check the probe, delete
+    it. -> Create an nginx pod (that includes port 80) with an HTTP readinessProbe
+    on path '/' on port 80. Again, run it, check the readinessProbe, delete it.
+  task: Create an nginx pod with a liveness probe that just runs the command 'ls'.
+    Save its YAML in pod.yaml. Run it, check its probe status, delete it.
+  hints: []
+  solution:
+  - kubectl run nginx --image=nginx --restart=Never --dry-run=client -o yaml > pod.yaml
+  - kubectl create -f pod.yaml
+  - 'kubectl describe pod nginx | grep -i liveness # run this to see that liveness
+    probe works'
+  - kubectl delete -f pod.yaml
+  - '# Then: Modify the pod.yaml file so that liveness probe starts kicking in after
+    5 seconds whereas the interval between probes would be 5 seconds. Run it, check
+    the probe, delete it.'
+  - 'kubectl explain pod.spec.containers.livenessProbe # get the exact names'
+  - kubectl create -f pod.yaml
+  - kubectl describe po nginx | grep -i liveness
+  - kubectl delete -f pod.yaml
+  - '# Then: Create an nginx pod (that includes port 80) with an HTTP readinessProbe
+    on path ''/'' on port 80. Again, run it, check the readinessProbe, delete it.'
+  - kubectl run nginx --image=nginx --dry-run=client -o yaml --restart=Never --port=80
+    > pod.yaml
+  - kubectl create -f pod.yaml
+  - 'kubectl describe pod nginx | grep -i readiness # to see the pod readiness details'
+  - kubectl delete -f pod.yaml
+  verify:
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  - 'kubectl describe pod nginx | grep -i liveness # run this to see that liveness
+    probe works'
+  - kubectl describe po nginx | grep -i liveness
+  - kubectl get po nginx -o jsonpath='{.status.phase}'
+  - 'kubectl describe pod nginx | grep -i readiness # to see the pod readiness details'
+  cleanup:
+  - kubectl delete po nginx --ignore-not-found
+  - kubectl delete -f pod.yaml
+- id: observability-03
+  domain: observability
+  domain_name: Observability
+  weight: 18
+  title: Lots of pods are running in `qa`,`alan`,`test`,`production` namespaces.  All
+    of these pods are configured with liveness probe.  Please list all pods whose
+    liveness probe are failed in the format of `<namespace>/<pod name>` per line.
+  task: Lots of pods are running in `qa`,`alan`,`test`,`production` namespaces.  All
+    of these pods are configured with liveness probe.  Please list all pods whose
+    liveness probe are failed in the format of `<namespace>/<pod name>` per line.
+  hints: []
+  solution:
+  - kubectl get events -o json | jq -r '.items[] | select(.message | contains("Liveness
+    probe failed")).involvedObject | .namespace + "/" + .name'
+  verify:
+  - kubectl get events -o json | jq -r '.items[] | select(.message | contains("Liveness
+    probe failed")).involvedObject | .namespace + "/" + .name'
+  cleanup:
+  - echo 'No cleanup needed'
+- id: observability-04
+  domain: observability
+  domain_name: Observability
+  weight: 18
+  title: 'Create a busybox pod that runs `i=0; while true; do echo "$i: $(date)";
+    i=$((i+1)); sleep 1; done`. Check its logs'
+  task: 'Create a busybox pod that runs `i=0; while true; do echo "$i: $(date)"; i=$((i+1));
+    sleep 1; done`. Check its logs'
+  hints: []
+  solution:
+  - 'kubectl run busybox --image=busybox --restart=Never -- /bin/sh -c ''i=0; while
+    true; do echo "$i: $(date)"; i=$((i+1)); sleep 1; done'''
+  - 'kubectl logs busybox -f # follow the logs'
+  verify:
+  - kubectl get po busybox -o jsonpath='{.status.phase}'
+  cleanup:
+  - kubectl delete po busybox --ignore-not-found
+- id: observability-05
+  domain: observability
+  domain_name: Observability
+  weight: 18
+  title: Create a busybox pod that runs 'ls /notexist'. Determine if there's an error
+    (of course there is), see it. In the end, delete the pod
+  task: Create a busybox pod that runs 'ls /notexist'. Determine if there's an error
+    (of course there is), see it. In the end, delete the pod
+  hints: []
+  solution:
+  - kubectl run busybox --restart=Never --image=busybox -- /bin/sh -c 'ls /notexist'
+  - kubectl logs busybox
+  - kubectl describe po busybox
+  - kubectl delete po busybox
+  verify:
+  - kubectl get po busybox -o jsonpath='{.status.phase}'
+  - kubectl describe po busybox
+  cleanup:
+  - kubectl delete po busybox --ignore-not-found
+  - kubectl delete po busybox
+- id: observability-06
+  domain: observability
+  domain_name: Observability
+  weight: 18
+  title: Create a busybox pod that runs 'notexist'. Determine if there's an error
+    (of course there is), see it. In the end, delete the pod forcefully with a 0 grace
+    period
+  task: Create a busybox pod that runs 'notexist'. Determine if there's an error (of
+    course there is), see it. In the end, delete the pod forcefully with a 0 grace
+    period
+  hints: []
+  solution:
+  - kubectl run busybox --restart=Never --image=busybox -- notexist
+  - 'kubectl logs busybox # will bring nothing! container never started'
+  - 'kubectl describe po busybox # in the events section, you''ll see the error'
+  - 'kubectl get events | grep -i error # you''ll see the error here as well'
+  - kubectl delete po busybox --force --grace-period=0
+  verify:
+  - kubectl get po busybox -o jsonpath='{.status.phase}'
+  - 'kubectl describe po busybox # in the events section, you''ll see the error'
+  - 'kubectl get events | grep -i error # you''ll see the error here as well'
+  cleanup:
+  - kubectl delete po busybox --ignore-not-found
+  - kubectl delete po busybox --force --grace-period=0
+- id: observability-07
+  domain: observability
+  domain_name: Observability
+  weight: 18
+  title: Get CPU/memory utilization for nodes ([metrics-server](https://github.com/kubernetes-incubator/metrics-server)
+    must be running)
+  task: Get CPU/memory utilization for nodes ([metrics-server](https://github.com/kubernetes-incubator/metrics-server)
+    must be running)
+  hints: []
+  solution:
+  - kubectl top nodes
+  verify:
+  - echo 'Verify manually'
+  cleanup:
+  - echo 'No cleanup needed'

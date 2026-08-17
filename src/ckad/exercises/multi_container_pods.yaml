@@ -1,0 +1,44 @@
+- id: multi_container_pods-00
+  domain: multi_container_pods
+  domain_name: Multi-container Pods
+  weight: 10
+  title: Create a Pod with two containers, both with image busybox and command "echo
+    hello; sleep 3600". Connect to the second container and run 'ls' -> Create a pod
+    with an nginx container exposed on port 80. Add a busybox init container which
+    downloads a page using 'echo "Test" > /work-dir/index.html'. Make a volume of
+    type emptyDir and mount it in both containers. For the nginx container, mount
+    it on "/usr/share/nginx/html" and for the initcontainer, mount it on "/work-dir".
+    When done, get the IP of the created pod and create a busybox pod and run "wget
+    -O- IP"
+  task: Create a Pod with two containers, both with image busybox and command "echo
+    hello; sleep 3600". Connect to the second container and run 'ls'
+  hints: []
+  solution:
+  - kubectl run busybox --image=busybox --restart=Never -o yaml --dry-run=client --
+    /bin/sh -c 'echo hello;sleep 3600' > pod.yaml
+  - kubectl create -f pod.yaml
+  - kubectl exec -it busybox -c busybox2 -- /bin/sh
+  - ls
+  - exit
+  - kubectl exec -it busybox -c busybox2 -- ls
+  - kubectl delete po busybox
+  - '# Then: Create a pod with an nginx container exposed on port 80. Add a busybox
+    init container which downloads a page using ''echo "Test" > /work-dir/index.html''.
+    Make a volume of type emptyDir and mount it in both containers. For the nginx
+    container, mount it on "/usr/share/nginx/html" and for the initcontainer, mount
+    it on "/work-dir". When done, get the IP of the created pod and create a busybox
+    pod and run "wget -O- IP"'
+  - kubectl run box --image=nginx --restart=Never --port=80 --dry-run=client -o yaml
+    > pod-init.yaml
+  - kubectl apply -f pod-init.yaml
+  - kubectl get po -o wide
+  - kubectl run box-test --image=busybox --restart=Never -it --rm -- /bin/sh -c "wget
+    -O- $(kubectl get pod box -o jsonpath='{.status.podIP}')"
+  - kubectl delete po box
+  verify:
+  - kubectl get po busybox -o jsonpath='{.status.phase}'
+  - kubectl get po box -o jsonpath='{.status.phase}'
+  - kubectl get po -o wide
+  cleanup:
+  - kubectl delete po busybox --ignore-not-found
+  - kubectl delete po busybox
