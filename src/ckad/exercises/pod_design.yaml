@@ -196,47 +196,57 @@
   domain: pod_design
   domain_name: Pod Design
   weight: 20
-  title: Create a pod that will be placed on node `node01` using `nodeName`
-  task: Create a pod that will be placed on node `node01` using `nodeName`
+  title: Create a pod that will be placed on a specific node using `nodeName`
+  task: >-
+    Create a pod that will be placed on a specific node using `nodeName`.
+    On kind, the worker node is named `kind-worker` (or `ckad-prep-worker`).
+    Use `kubectl get nodes` to find the exact node name, then set `nodeName` in the pod spec.
   hints: []
   solution:
-  - kubectl get pod nodename-pod -o wide
+  - kubectl get nodes
+  - kubectl get nodes -o wide
+  - kubectl explain po.spec.nodeName
   verify:
   - kubectl get pod nodename-pod -o wide
   cleanup:
-  - echo 'No cleanup needed'
+  - kubectl delete pod nodename-pod --ignore-not-found 2>/dev/null || true
 - id: pod_design-15
   domain: pod_design
   domain_name: Pod Design
   weight: 20
   title: Taint a node with key `tier` and value `frontend` with the effect `NoSchedule`.
     Then, create a pod that tolerates this taint.
-  task: Taint a node with key `tier` and value `frontend` with the effect `NoSchedule`.
+  task: >-
+    Taint a node with key `tier` and value `frontend` with the effect `NoSchedule`.
     Then, create a pod that tolerates this taint.
+    Use `kubectl get nodes` to find a node to taint.
   hints: []
   solution:
-  - 'kubectl taint node node1 tier=frontend:NoSchedule # key=value:Effect'
-  - 'kubectl describe node node1 # view the taints on a node'
+  - kubectl get nodes
+  - 'kubectl taint node <NODE_NAME> tier=frontend:NoSchedule'
+  - 'kubectl describe node <NODE_NAME>'
   verify:
-  - 'kubectl describe node node1 # view the taints on a node'
+  - kubectl get nodes --show-labels
   cleanup:
-  - kubectl taint node node1 tier=frontend:NoSchedule- 2>/dev/null || true
+  - kubectl taint node --all tier=frontend:NoSchedule- 2>/dev/null || true
 - id: pod_design-16
   domain: pod_design
   domain_name: Pod Design
   weight: 20
-  title: Create a pod that will be placed on node `controlplane`. Use nodeSelector
-    and tolerations.
-  task: Create a pod that will be placed on node `controlplane`. Use nodeSelector
-    and tolerations.
+  title: Create a pod placed on the control-plane node using nodeSelector and tolerations.
+  task: >-
+    Create a pod placed on the control-plane node using nodeSelector and tolerations.
+    Use `kubectl get nodes --show-labels` to find the control-plane node's labels.
+    Control-plane nodes typically have `node-role.kubernetes.io/control-plane:NoSchedule` taint.
   hints:
   - 'Deployments: https://kubernetes.io/docs/concepts/workloads/controllers/deployment'
   solution:
-  - kubectl create -f pod.yaml
+  - kubectl get nodes --show-labels
+  - kubectl describe node -l node-role.kubernetes.io/control-plane
   verify:
-  - echo 'Verify manually'
+  - kubectl get nodes --show-labels
   cleanup:
-  - echo 'No cleanup needed'
+  - kubectl delete pod frontend --ignore-not-found 2>/dev/null || true
 - id: pod_design-17
   domain: pod_design
   domain_name: Pod Design

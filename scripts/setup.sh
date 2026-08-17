@@ -27,6 +27,15 @@ kubectl cluster-info --context "kind-${CLUSTER_NAME}" >/dev/null 2>&1
 log "Waiting for nodes to be ready..."
 kubectl wait --for=condition=Ready node --all --timeout=120s
 
+# --- label nodes for CKAD exercise naming ---
+# kind names nodes <cluster>-control-plane and <cluster>-worker
+# CKAD exercises reference 'controlplane' and 'node01'
+WORKER=$(kubectl get nodes -l '!node-role.kubernetes.io/control-plane' -o jsonpath='{.items[0].metadata.name}' 2>/dev/null)
+if [ -n "$WORKER" ]; then
+  kubectl label "$WORKER" kubernetes.io/hostname=node01 --overwrite 2>/dev/null || true
+  log "Labeled worker as node01"
+fi
+
 # --- metrics-server (for kubectl top) ---
 if kubectl top nodes >/dev/null 2>&1; then
   log "Metrics-server already running."

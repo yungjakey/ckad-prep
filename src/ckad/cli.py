@@ -1,13 +1,18 @@
-"""CKAD prep CLI - session-aware with fzf pickers."""
+"""CKAD prep CLI - session-aware with fzf pickers, agent-playable."""
 
 from __future__ import annotations
 
 import argparse
+import json
 import signal
 import sys
 import time
 
 from ckad.exercises import (
+    Action,
+    Exercise,
+    append_trace,
+    cleanup,
     complete_session,
     create_session,
     delete_session,
@@ -23,6 +28,7 @@ from ckad.exercises import (
     run,
     select,
     session_progress,
+    verify,
 )
 
 # -- ansi --
@@ -41,55 +47,36 @@ def fmt_time(s: float) -> str:
     return f"{m:02d}:{s:02d}"
 
 
-def verify(ex: dict, ns: str) -> tuple[bool, list[tuple[str, str, str]]]:
-    out = []
-    ok = True
-    for cmd in ex.get("verify", []):
-        if cmd.startswith("echo "):
-            out.append(("skip", cmd, "manual"))
-            continue
-        # inject namespace if not already present
-        c = cmd if "-n " in cmd or "--namespace " in cmd else f"{cmd} -n {ns}"
-        stdout, stderr, rc = run(c)
-        if rc == 0:
-            out.append(("pass", cmd, stdout or "(ok)"))
-        else:
-            out.append(("fail", cmd, stderr or stdout or f"rc={rc}"))
-            ok = False
-    return ok, out
+# -- render (IO) --
 
-
-def cleanup(ex: dict, ns: str) -> None:
-    for cmd in ex.get("cleanup", []):
-        if cmd.startswith("echo "):
-            continue
-        # delete the namespace directly (nukes everything in it)
-        run(f"kubectl delete ns {ns} --ignore-not-found --wait=false")
-        return
-    # fallback: run individual cleanup commands with namespace
-    for cmd in ex.get("cleanup", []):
-        if not cmd.startswith("echo "):
-            c = cmd if "-n " in cmd or "--namespace " in cmd else f"{cmd} -n {ns}"
-            run(c, timeout=60)
-
-
-def print_ex(ex: dict, i: int, total: int, ns: str) -> None:
+def render_exercise(ex: Exercise, i: int, total: int, ns: str) -> None:
     print(f"\n{B}{CYN}{'=' * 60}{R}")
     print(f"{B}{CYN}  Exercise {i}/{total}  {D}ns={ns}{R}")
     print(f"{B}{CYN}{'=' * 60}{R}\n")
-    print(f"{B}{WHT}{ex['title']}{R}\n")
-    for h in ex.get("hints", []):
+    print(f"{B}{WHT}{ex.title}{R}\n")
+    for h in ex.hints:
         print(f"  {D}{h}{R}")
 
 
-def print_solution(ex: dict) -> None:
+def render_solution(ex: Exercise) -> None:
     print(f"\n{B}{GRN}--- Solution ---{R}")
-    for cmd in ex["solution"]:
+    for cmd in ex.solution:
         print(f"  {GRN}{cmd}{R}")
     print(f"{GRN}---{R}\n")
 
 
-def summary(session: dict) -> None:
+def render_verify_result(ok: bool, details: list[tuple[str, str, str]]) -> None:
+    if ok:
+        print(f"  {GRN}{B}PASSED{R}")
+    else:
+        print(f"  {RED}{B}FAILED{R}")
+        for st, cmd, detail in details:
+            if st == "fail":
+                print(f"    {RED}{cmd}{R}")
+                print(f"    {D}{detail[:200]}{R}")
+
+
+def render_summary(session: dict) -> None:
     done, _ = session_progress(session)
     passed = sum(1 for e in session["exercises"] if e["result"] == "passed")
     total_time = sum(e.get("elapsed", 0) for e in session["exercises"])
@@ -102,14 +89,147 @@ def summary(session: dict) -> None:
     print()
 
 
+def render_progress(sid: str, t0: float) -> None:
+    session = load_session(sid)
+    done, _ = session_progress(session)
+    passed = sum(1 for e in session["exercises"] if e["result"] == "passed")
+    print(f"\n  {D}{passed}/{done} passed | {fmt_time(time.time() - t0)}{R}")
+
+
+# -- input (IO, with injection support) --
+
+def read_action(action_iter: iter[str] | None = None) -> Action:
+    """Read action from input or injected action stream."""
+    if action_iter is not None:
+        try:
+            raw = next(action_iter)
+        except StopIteration:
+            return Action.QUIT
+        print(raw)
+        try:
+            return Action.from_str(raw)
+        except ValueError:
+            print(f"  {D}(unknown action: {raw!r}, treating as enter){R}")
+            return Action.ENTER
+    raw = input(f"  {D}> {R}").strip().lower()
+    try:
+        return Action.from_str(raw)
+    except ValueError:
+        print(f"  {D}(unknown action: {raw!r}, treating as enter){R}")
+        return Action.ENTER
+
+
+def read_confirm(prompt: str, action_iter: iter[str] | None = None) -> bool:
+    if action_iter is not None:
+        try:
+            raw = next(action_iter)
+        except StopIteration:
+            return False
+        return raw.strip().lower() in ("y", "yes")
+    return input(prompt).strip().lower() in ("y", "yes")
+
+
+# -- session runner (the core loop) --
+
+def run_session(
+    exercises: list[Exercise],
+    sid: str,
+    no_verify: bool = False,
+    dry_run: bool = False,
+    action_iter: iter[str] | None = None,
+) -> dict:
+    """Run a session loop. Returns the final session dict.
+
+    action_iter: if provided, actions are read from this iterator instead of input().
+    """
+    total = len(exercises)
+    t0 = time.time()
+
+    print(f"\n{B}CKAD Practice - {total} exercises{R}")
+    print(f"{D}Session: {sid}  ns prefix: {ns_prefix(sid)}{R}")
+    if dry_run:
+        print(f"{YEL}  DRY RUN - no kubectl commands will execute{R}")
+    print(f"{D}Enter=verify  s=solution  n=skip  q=quit{R}")
+    print(f"{D}Target: {fmt_time(330 * total)} (~5.5 min/question){R}\n")
+    if action_iter is None:
+        time.sleep(1)
+
+    for i, ex in enumerate(exercises, 1):
+        ns = f"{ns_prefix(sid)}-{ex.domain[:12]}"
+        render_exercise(ex, i, total, ns)
+
+        ex_t0 = time.time()
+        showed_solution = False
+        skipped = False
+
+        while True:
+            action = read_action(action_iter)
+
+            if action == Action.QUIT:
+                cleanup(ex, ns, dry_run=dry_run)
+                render_summary(load_session(sid))
+                sys.exit(0)
+
+            if action == Action.SOLUTION:
+                render_solution(ex)
+                showed_solution = True
+                continue
+
+            if action == Action.SKIP:
+                elapsed = time.time() - ex_t0
+                record_exercise(sid, ex.id, False, elapsed)
+                append_trace(sid, {
+                    "exercise": ex.id, "action": "skip",
+                    "elapsed": round(elapsed, 1),
+                })
+                print(f"  {D}skipped{R}")
+                skipped = True
+                break
+
+            # ENTER -> verify
+            break
+
+        if not no_verify and not showed_solution and not skipped:
+            print(f"  {D}verifying...{R}")
+            ok, details = verify(ex, ns, dry_run=dry_run)
+            elapsed = time.time() - ex_t0
+            render_verify_result(ok, details)
+
+            if not ok and action_iter is None and read_confirm(f"  {D}s for solution, enter to continue...{R}", action_iter):
+                render_solution(ex)
+
+            record_exercise(sid, ex.id, ok, elapsed)
+            append_trace(sid, {
+                "exercise": ex.id, "action": "verify",
+                "passed": ok, "elapsed": round(elapsed, 1),
+                "details": [{"status": s, "cmd": c, "output": o[:200]} for s, c, o in details],
+            })
+        else:
+            elapsed = time.time() - ex_t0
+            record_exercise(sid, ex.id, False, elapsed)
+            append_trace(sid, {
+                "exercise": ex.id, "action": "verify_skip",
+                "passed": False, "elapsed": round(elapsed, 1),
+            })
+
+        cleanup(ex, ns, dry_run=dry_run)
+        render_progress(sid, t0)
+
+    complete_session(sid)
+    session = load_session(sid)
+    render_summary(session)
+    return session
+
+
 # -- commands --
 
 def cmd_run(args: argparse.Namespace) -> None:
-    """Start a new session."""
+    if getattr(args, "auto", False):
+        return cmd_test(args)
+
     exercises = load_exercises(domain=args.domain)
 
     if args.review:
-        # collect failed exercise ids across all sessions
         failed = set()
         for s in list_sessions():
             for e in s["exercises"]:
@@ -118,7 +238,7 @@ def cmd_run(args: argparse.Namespace) -> None:
         if not failed:
             print(f"{GRN}Nothing to review.{R}")
             return
-        exercises = [e for e in exercises if e["id"] in failed]
+        exercises = [e for e in exercises if e.id in failed]
 
     if not exercises:
         print(f"{RED}No exercises found.{R}")
@@ -126,9 +246,8 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     exercises = select(exercises, count=args.count, seed=args.seed)
     sid = time.strftime("%Y%m%d-%H%M%S")
-    session = create_session(sid, args.domain, [e["id"] for e in exercises])
+    create_session(sid, args.domain, [e.id for e in exercises])
 
-    # cluster check
     _, _, rc = run("kubectl cluster-info 2>/dev/null")
     if rc != 0:
         print(f"{RED}No cluster. Run: scripts/setup.sh{R}")
@@ -137,74 +256,61 @@ def cmd_run(args: argparse.Namespace) -> None:
 
     def on_sigint(sig, frame):
         print(f"\n{YEL}Interrupted{R}")
-        summary(load_session(sid))
+        render_summary(load_session(sid))
         sys.exit(0)
     signal.signal(signal.SIGINT, on_sigint)
 
-    total = len(exercises)
-    t0 = time.time()
+    # --actions injection
+    action_iter = None
+    if args.actions:
+        action_iter = iter(args.actions.split(","))
 
-    print(f"\n{B}CKAD Practice - {total} exercises{R}")
-    print(f"{D}Session: {sid}  ns prefix: {ns_prefix(sid)}{R}")
-    print(f"{D}Enter=verify  s=solution  n=skip  q=quit{R}")
-    print(f"{D}Target: {fmt_time(330 * total)} (~5.5 min/question){R}\n")
-    time.sleep(1)
+    run_session(exercises, sid, no_verify=args.no_verify, action_iter=action_iter)
 
-    for i, ex in enumerate(exercises, 1):
-        ns = f"{ns_prefix(sid)}-{ex['domain'][:12]}"
-        print_ex(ex, i, total, ns)
 
-        ex_t0 = time.time()
-        showed_solution = False
+def cmd_test(args: argparse.Namespace) -> None:
+    exercises = load_exercises(domain=args.domain)
+    if not exercises:
+        print(json.dumps({"error": "no exercises found"}))
+        sys.exit(1)
 
-        while True:
-            ans = input(f"  {D}> {R}").strip().lower()
-            if ans == "q":
-                cleanup(ex, ns)
-                summary(load_session(sid))
-                sys.exit(0)
-            if ans == "s":
-                print_solution(ex)
-                showed_solution = True
-                continue
-            if ans == "n":
-                elapsed = time.time() - ex_t0
-                record_exercise(sid, ex["id"], False, elapsed)
-                print(f"  {D}skipped{R}")
-                break
-            break
+    exercises = select(exercises, count=args.count, seed=args.seed)
+    sid = time.strftime("%Y%m%d-%H%M%S")
+    create_session(sid, args.domain, [e.id for e in exercises])
 
-        if not args.no_verify and not showed_solution:
-            print(f"  {D}verifying...{R}")
-            ok, details = verify(ex, ns)
-            elapsed = time.time() - ex_t0
-            if ok:
-                print(f"  {GRN}{B}PASSED{R}")
-            else:
-                print(f"  {RED}{B}FAILED{R}")
-                for st, cmd, detail in details:
-                    if st == "fail":
-                        print(f"    {RED}{cmd}{R}")
-                        print(f"    {D}{detail[:200]}{R}")
-                if input(f"  {D}s for solution, enter to continue...{R}").strip().lower() == "s":
-                    print_solution(ex)
-            record_exercise(sid, ex["id"], ok, elapsed)
-        else:
-            elapsed = time.time() - ex_t0
-            record_exercise(sid, ex["id"], False, elapsed)
+    results = []
+    for ex in exercises:
+        ns = f"{ns_prefix(sid)}-{ex.domain[:12]}"
+        t0 = time.time()
 
-        cleanup(ex, ns)
-        session = load_session(sid)
-        done, _ = session_progress(session)
-        passed = sum(1 for e in session["exercises"] if e["result"] == "passed")
-        print(f"\n  {D}{passed}/{done} passed | {fmt_time(time.time() - t0)}{R}")
+        ok, details = verify(ex, ns, dry_run=args.dry_run)
+        elapsed = time.time() - t0
+        record_exercise(sid, ex.id, ok, elapsed)
+        cleanup(ex, ns, dry_run=args.dry_run)
+
+        results.append({
+            "exercise": ex.id,
+            "domain": ex.domain,
+            "passed": ok,
+            "elapsed": round(elapsed, 1),
+            "details": [{"status": s, "cmd": c, "output": o[:200]} for s, c, o in details],
+        })
 
     complete_session(sid)
-    summary(load_session(sid))
+
+    passed = sum(1 for r in results if r["passed"])
+    output = {
+        "session": sid,
+        "total": len(results),
+        "passed": passed,
+        "failed": len(results) - passed,
+        "results": results,
+    }
+    print(json.dumps(output, indent=2))
+    sys.exit(0 if passed == len(results) else 1)
 
 
 def cmd_sessions(args: argparse.Namespace) -> None:
-    """fzf picker to select and attach to a session."""
     sid = fzf_session_picker()
     if not sid:
         return
@@ -215,7 +321,7 @@ def cmd_sessions(args: argparse.Namespace) -> None:
 
     if session["status"] != "active":
         print(f"{D}Session is {session['status']}. Showing results only.{R}")
-        summary(session)
+        render_summary(session)
         return
 
     ex = fzf_exercise_picker(session)
@@ -226,80 +332,37 @@ def cmd_sessions(args: argparse.Namespace) -> None:
 
 
 def cmd_attach(args: argparse.Namespace) -> None:
-    """Resume a session from where it left off."""
     session = load_session(args.session_id)
     if session["status"] != "active":
         print(f"{RED}Session {args.session_id} is {session['status']}{R}")
         sys.exit(1)
 
-    # find next uncompleted exercise
     remaining = [e for e in session["exercises"] if e["result"] is None]
     if not remaining:
         print(f"{GRN}Session already complete.{R}")
-        summary(session)
+        render_summary(session)
         return
 
-    all_exercises = {e["id"]: e for e in load_exercises()}
+    all_exercises = {e.id: e for e in load_exercises()}
     exercises = [all_exercises[e["id"]] for e in remaining if e["id"] in all_exercises]
     sid = args.session_id
 
     print(f"\n{B}Resuming session {sid}{R} - {len(exercises)} exercises remaining")
     print(f"{D}ns prefix: {ns_prefix(sid)}{R}\n")
-    time.sleep(1)
+    if args.actions is None:
+        time.sleep(1)
 
-    t0 = time.time()
-    for i, ex in enumerate(exercises, 1):
-        ns = f"{ns_prefix(sid)}-{ex['domain'][:12]}"
-        print_ex(ex, i, len(exercises), ns)
+    def on_sigint(sig, frame):
+        print(f"\n{YEL}Interrupted{R}")
+        render_summary(load_session(sid))
+        sys.exit(0)
+    signal.signal(signal.SIGINT, on_sigint)
 
-        ex_t0 = time.time()
-        showed_solution = False
-
-        while True:
-            ans = input(f"  {D}> {R}").strip().lower()
-            if ans == "q":
-                summary(load_session(sid))
-                sys.exit(0)
-            if ans == "s":
-                print_solution(ex)
-                showed_solution = True
-                continue
-            if ans == "n":
-                record_exercise(sid, ex["id"], False, time.time() - ex_t0)
-                print(f"  {D}skipped{R}")
-                break
-            break
-
-        if not args.no_verify and not showed_solution:
-            print(f"  {D}verifying...{R}")
-            ok, details = verify(ex, ns)
-            elapsed = time.time() - ex_t0
-            if ok:
-                print(f"  {GRN}{B}PASSED{R}")
-            else:
-                print(f"  {RED}{B}FAILED{R}")
-                for st, cmd, detail in details:
-                    if st == "fail":
-                        print(f"    {RED}{cmd}{R}")
-                        print(f"    {D}{detail[:200]}{R}")
-                if input(f"  {D}s for solution, enter to continue...{R}").strip().lower() == "s":
-                    print_solution(ex)
-            record_exercise(sid, ex["id"], ok, elapsed)
-        else:
-            record_exercise(sid, ex["id"], False, time.time() - ex_t0)
-
-        cleanup(ex, ns)
-        session = load_session(sid)
-        done, _ = session_progress(session)
-        passed = sum(1 for e in session["exercises"] if e["result"] == "passed")
-        print(f"\n  {D}{passed}/{done} passed | {fmt_time(time.time() - t0)}{R}")
-
-    complete_session(sid)
-    summary(load_session(sid))
+    action_iter = iter(args.actions.split(",")) if args.actions else None
+    run_session(exercises, sid, no_verify=args.no_verify, action_iter=action_iter)
 
 
 def cmd_kill(args: argparse.Namespace) -> None:
-    """Kill active sessions (fzf picker or direct id)."""
     sid = args.session_id or fzf_kill_picker()
     if not sid:
         return
@@ -308,7 +371,6 @@ def cmd_kill(args: argparse.Namespace) -> None:
 
 
 def cmd_delete(args: argparse.Namespace) -> None:
-    """Delete session directory entirely."""
     sid = args.session_id or fzf_kill_picker()
     if not sid:
         return
@@ -319,7 +381,6 @@ def cmd_delete(args: argparse.Namespace) -> None:
 
 
 def cmd_list(args: argparse.Namespace) -> None:
-    """List sessions or exercises."""
     if args.target == "sessions":
         sessions = list_sessions()
         if not sessions:
@@ -329,25 +390,25 @@ def cmd_list(args: argparse.Namespace) -> None:
         print("-" * 65)
         for s in sessions:
             done, total = session_progress(s)
-            print(f"{s['id']:22s} {(s.get('domain') or 'all'):20s} {done}/{total:<8s} {s['status']}")
+            print(f"{s['id']:22s} {(s.get('domain') or 'all'):20s} {done}/{total:<5d} {s['status']}")
         print()
     else:
         exercises = load_exercises(domain=args.domain)
         by_d: dict[str, list] = {}
         for e in exercises:
-            by_d.setdefault(e["domain"], []).append(e)
+            by_d.setdefault(e.domain, []).append(e)
         print(f"\n{B}Domains:{R}")
         for d in sorted(by_d):
             exs = by_d[d]
-            w = exs[0]["weight"] if exs else 0
+            w = exs[0].weight if exs else 0
             print(f"  {d:30s} {len(exs):3d} exercises  (weight: {w}%)")
         print(f"\n{B}All exercises:{R}")
         cur = None
         for e in exercises:
-            if e["domain"] != cur:
-                cur = e["domain"]
-                print(f"\n  {CYN}{e['domain_name']}{R} ({e['weight']}%)")
-            print(f"    {e['id']:30s} {e['title'][:65]}")
+            if e.domain != cur:
+                cur = e.domain
+                print(f"\n  {CYN}{e.domain_name}{R} ({e.weight}%)")
+            print(f"    {e.id:30s} {e.title[:65]}")
         print(f"\n  Total: {len(exercises)}")
 
 
@@ -364,14 +425,32 @@ def main() -> None:
     run_p.add_argument("--review", action="store_true")
     run_p.add_argument("--seed", type=int, default=None)
     run_p.add_argument("--no-verify", action="store_true")
+    run_p.add_argument("--auto", action="store_true",
+                       help="non-interactive: run all exercises, verify, output JSON")
+    run_p.add_argument("--dry-run", action="store_true",
+                       help="skip kubectl commands, verify from YAML only")
+    run_p.add_argument("--actions", type=str, default=None,
+                       help="comma-separated actions to inject (e.g. 'enter,s,n,q')")
 
-    # sessions (fzf picker)
+    # test
+    test_p = sub.add_parser("test", help="auto-run exercises (non-interactive)")
+    test_p.add_argument("-n", "--count", type=int, default=3)
+    test_p.add_argument("-d", "--domain", default=None)
+    test_p.add_argument("--seed", type=int, default=42)
+    test_p.add_argument("--no-verify", action="store_true")
+    test_p.add_argument("--dry-run", action="store_true",
+                        help="skip kubectl commands, verify from YAML only")
+
+    # sessions
     sub.add_parser("sessions", aliases=["ss"], help="pick a session with fzf")
 
     # attach
     attach_p = sub.add_parser("attach", aliases=["a"], help="resume a session")
     attach_p.add_argument("session_id")
     attach_p.add_argument("--no-verify", action="store_true")
+    attach_p.add_argument("--dry-run", action="store_true")
+    attach_p.add_argument("--actions", type=str, default=None,
+                          help="comma-separated actions to inject")
 
     # kill
     kill_p = sub.add_parser("kill", aliases=["k"], help="kill active session")
@@ -383,7 +462,8 @@ def main() -> None:
 
     # list
     list_p = sub.add_parser("list", aliases=["ls"], help="list sessions or exercises")
-    list_p.add_argument("target", nargs="?", default="sessions", choices=["sessions", "exercises"])
+    list_p.add_argument("target", nargs="?", default="sessions",
+                        choices=["sessions", "exercises"])
     list_p.add_argument("-d", "--domain", default=None)
 
     # results
@@ -404,11 +484,12 @@ def main() -> None:
         cmd_list(args)
     elif args.command in ("results", "r"):
         if args.session_id:
-            summary(load_session(args.session_id))
+            render_summary(load_session(args.session_id))
         else:
             sid = fzf_session_picker()
             if sid:
-                summary(load_session(sid))
+                render_summary(load_session(sid))
+    elif args.command == "test":
+        cmd_test(args)
     else:
-        # default: run
         cmd_run(args)

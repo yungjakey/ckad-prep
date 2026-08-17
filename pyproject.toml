@@ -23,4 +23,5 @@ packages = ["src/ckad"]
 [dependency-groups]
 dev = [
     "ruff>=0.4",
+    "pytest>=8.0",
 ]
